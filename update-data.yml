@@ -1,0 +1,73 @@
+name: Update Dashboard Data
+
+on:
+  schedule:
+    # 毎日0時に実行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 手動で実行できるようにする
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      
+      - name: Update data file
+        run: |
+          # 現在の日付と時刻を取得
+          CURRENT_DATE=$(date '+%Y-%m-%d %H:%M:%S')
+          
+          # ランダムな気温を生成 (10°Cから25°Cの間)
+          TEMP=$(( ( RANDOM % 16 ) + 10 ))
+          
+          # ランダムな湿度を生成 (30%から70%の間)
+          HUMIDITY=$(( ( RANDOM % 41 ) + 30 ))
+          
+          # 天気の状態をランダムに選択
+          WEATHER_CONDITIONS=('晴れ' '曇り' '雨' '曇りのち晴れ' '晴れのち曇り')
+          CONDITION_INDEX=$(( RANDOM % 5 ))
+          CONDITION=${WEATHER_CONDITIONS[$CONDITION_INDEX]}
+          
+          # データファイルを生成
+          cat > data.js << EOL
+          // このファイルは GitHub Actions によって定期的に更新されます
+          const data = {
+              lastUpdated: "$CURRENT_DATE",
+              weather: {
+                  temperature: $TEMP,
+                  condition: "$CONDITION",
+                  humidity: $HUMIDITY
+              },
+              news: [
+                  {
+                      title: "GitHub Pages で動的ダッシュボードを作成する方法",
+                      summary: "GitHub Pages と GitHub Actions を組み合わせて、動的なウェブサイトを作成する方法を紹介します。",
+                      date: "$(date '+%Y-%m-%d')"
+                  },
+                  {
+                      title: "JavaScript でリアルタイムデータを表示する",
+                      summary: "JavaScript を使って、リアルタイムでデータを更新する方法について解説します。",
+                      date: "$(date -d 'yesterday' '+%Y-%m-%d')"
+                  },
+                  {
+                      title: "CSSグリッドレイアウトの基本",
+                      summary: "モダンなウェブデザインに欠かせないCSSグリッドレイアウトの基本的な使い方を学びましょう。",
+                      date: "$(date -d '2 days ago' '+%Y-%m-%d')"
+                  }
+              ]
+          };
+          EOL
+      
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add data.js
+          git commit -m "データを更新 $(date '+%Y-%m-%d %H:%M:%S')" || echo "変更なし"
+          git push
